@@ -8,7 +8,7 @@ pending is filled in with an estimate.
 
 - Run date: 2026-10-04 (discovery 10:38 UTC; classification and enrichment the same day)
 - Policy version: `tier-v2` · Config hash: `dff9ccd434e6` (see `runs` table for per-stage hashes)
-- Git commit: not a git repository
+- Git repository: `https://github.com/mitul-bhatia/assignment_edxso` (`main`); the reference run is exported in that repository
 - Search matrix: 22 queries × strategies `video`, `video_medium`, `channel` × 2 pages; 30 searches
   executed this run (the 16 original baseline searches were already done), 7,063 of 8,000 budgeted
   quota units used that day
@@ -24,14 +24,13 @@ pending is filled in with an estimate.
 
 ### Message generation status
 
-- **111 of 116** qualified creators have a valid draft (email 60-90 words, DM 15-30 words); 55 are for creators with an email
-- 5 have no draft (mostly non-English channels where the English-word topic-overlap check cannot match);
-  `python main.py personalize` retries them
+- **112 of 116** qualified creators have a valid draft (email 60–90 words, DM 15–30 words)
+- 4 have no valid draft. A retry with `gemini-3.8-flash` completed one additional pair, then hit provider 429/503 limits. `python main.py personalize` resumes the remaining four when quota/service recovers. They are not filled with a fixed template.
 - Collaboration angles chosen by rule: 14 brand ambassador, 2 co created resource, 1 legacy, 82 sponsored walkthrough, 12 ugc tutorial
 - A defect found late in this run (third-person call-to-action leakage in 19 drafts, long titles pasted
   verbatim in 16) was fixed at the cause and a validator added so the system catches it itself; the 32
   affected drafts were blocked and regenerated
-- Review state: 1 approved and simulated-sent; the rest await human review
+- Review state: 6 approved and simulated-sent; the rest await human review
 
 ## Automated checks (reproducible)
 
@@ -40,7 +39,7 @@ pending is filled in with an estimate.
 | Unit and workflow tests | 75 pass (`python -m unittest discover -s tests`) |
 | Regression tests catch their bug | Verified by mutation: reintroducing each of 4 bugs made its test fail |
 | Mandatory assignment fields on qualified rows | 116/116 non-empty (name, platform, URL, followers, engagement, category, themes, email-or-`Not Found`) |
-| Drafts within length limits | email 63–90 words, DM 15–30 words across all 111 valid drafts |
+| Drafts within length limits | email 63–90 words, DM 15–30 words across 112 valid drafts |
 | Duplicate email openings (first 5 words) | rejected by the validator across the whole batch |
 | Fabricated or guessed email | None: every email stores its source URL and kind |
 

@@ -10,3 +10,4 @@
 .tier-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid #cfe0d8;background:#eef6f2;color:#1f5a46}
 .tier-badge.tier-priority{background:#fff4d6;border-color:#f0d58a;color:#7a5600}
 .demo-banner{display:flex;align-items:center;gap:8px;margin:12px 24px 0;padding:10px 14px;border-radius:10px;background:#eef6f2;border:1px solid #cfe0d8;color:#1f5a46;font-size:13.5px;font-weight:500}
+.demo-banner{align-items:flex-start;line-height:1.45}.demo-banner span{flex:1}.demo-banner .text-button{white-space:nowrap}.key-optional{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#eef0ee;color:#6b7a76;font-weight:700}

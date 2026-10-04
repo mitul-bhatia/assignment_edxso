@@ -11,7 +11,7 @@ simulates** it through an idempotent, logged sending layer, with a human review 
 
 Built for **EDXSO AI Engineer Intern, Assignment 1**.
 
-> **Live demo (read-only):** _add your Vercel link here_ · **Demo video:** _add your link here after recording_
+> **Live demo:** [assignment-edxso.vercel.app](https://assignment-edxso.vercel.app/) · Interactive browser-only sandbox on a frozen real-data snapshot. It cannot run discovery or transmit messages. **Demo video:** pending recording.
 
 **Honesty guarantees.** No influencer record, email address or metric is invented. Every email has a
 source URL and a confidence label; when none is found it is stored as `Not Found`. Unavailable data
@@ -30,7 +30,7 @@ and is **not approved for live outreach**; real sending is disabled by default.
 | With a real audience (view floor, reach, engagement) | 222 |
 | **Qualified (passed every rule)** | **116** (3 `PRIORITY`, 113 `STANDARD`) |
 | Qualified with a published email | 56 (60 stored as `Not Found`) |
-| Valid personalized drafts (email + DM) | **111 of 116** (55 of them for creators with an email) |
+| Valid personalized drafts (email + DM) | **112 of 116** (four remain blocked by model errors/rate limits; no placeholders substituted) |
 | Automated tests | 75 passing |
 
 Every one of the 1,368 non-qualified channels stores the exact reasons it failed. Review status and
@@ -44,9 +44,9 @@ the manual audit are tracked in [docs/EVALUATION.md](docs/EVALUATION.md).
 |---|---|
 | GitHub repository | this repository |
 | README / documentation | this file, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/EVALUATION.md](docs/EVALUATION.md), [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
-| Working demo, screenshots or video | live read-only demo and demo video (links at the top); run locally for the full interactive workbench |
+| Working demo, screenshots or video | [Live Vercel demo](https://assignment-edxso.vercel.app/); the full live-data pipeline and reviewer workbench run locally. Screenshots are supplied separately. |
 | Influencer dataset | [data/exports/influencers.csv](data/exports/influencers.csv): 1,484 discovered channels, 116 qualified |
-| Sample personalized outreach messages | [docs/SAMPLE_MESSAGES.md](docs/SAMPLE_MESSAGES.md) (readable selection) and [data/exports/messages.csv](data/exports/messages.csv) (all 111) |
+| Sample personalized outreach messages | [docs/SAMPLE_MESSAGES.md](docs/SAMPLE_MESSAGES.md) (readable selection) and [data/exports/messages.csv](data/exports/messages.csv) (all 112 validated drafts) |
 | Outreach tracker | [data/exports/outreach_log.csv](data/exports/outreach_log.csv) |
 | Automation workflow | the resumable command pipeline below, plus CI in [.github/workflows](.github/workflows/tests.yml) |
 | Setup instructions | [Quick start](#quick-start) |
@@ -63,7 +63,7 @@ the manual audit are tracked in [docs/EVALUATION.md](docs/EVALUATION.md).
 | Category, platform, followers, engagement, content relevance, brand fit, geography | All evaluated. Audience demographics are `Not Available` (they need creator-provided analytics); channel country is recorded and never presented as audience geography |
 | **3. Enrichment**, mandatory fields | All 116 qualified rows have name, platform, URL, followers, engagement, category, themes and an email or `Not Found`. [src/enrichment.py](src/enrichment.py) |
 | Email never guessed | 56 found, 60 `Not Found`. All 412 stored emails were verified against their cited source text or page |
-| **4. Personalization**, email 60–90 words, DM 15–30 words | 111 valid drafts, all within limits, each citing a real recent video, generated per creator. [src/personalization.py](src/personalization.py) |
+| **4. Personalization**, email 60–90 words, DM 15–30 words | 112 valid drafts, all within limits, each citing a real recent video, generated per creator; four pending model retry. [src/personalization.py](src/personalization.py) |
 | Collaboration angles | Sponsored walkthrough, brand ambassador, UGC tutorial, co-created resource; chosen by rule from audience features |
 | **5. Sending layer**, valid email, retrieve message, send/simulate, status, no duplicates, log | Idempotent dry-run sender with a gated live-SMTP mode. [src/outreach.py](src/outreach.py), [src/mailer.py](src/mailer.py) |
 | Instagram DM, no platform bypass | DMs generated; sending is a manual-record workflow only |
@@ -116,7 +116,7 @@ The reasoning behind each design decision, with the measured evidence, is in
 | LLM | **Google Gemini** via REST: `gemini-3.5-flash-lite` for classification (temperature 0, JSON output); `gemini-3.5-flash` with automatic fallback to flash-lite for message writing. Groq is an optional alternative classifier |
 | Contact data | Text creators published (channel and video descriptions) and their linked public websites (HTML, `robots.txt` respected). No third-party email-finder services and no guessing |
 | Sending | SMTP (`smtplib`), dry-run by default |
-| Review UI | React 19 + Vite, served by a local FastAPI service; a frozen read-only build is hosted on Vercel |
+| Review UI | React 19 + Vite, served by a local FastAPI service; a frozen browser-only sandbox is hosted on Vercel |
 | Tests / CI | `unittest` (75 offline tests), GitHub Actions |
 
 **Data sources:** public YouTube channel and video metadata, and public pages creators link to. No
@@ -204,19 +204,20 @@ The API has no authentication. Keep it on `127.0.0.1` and never expose it public
 
 ---
 
-## Hosted demo on Vercel (read-only)
+## Hosted demo on Vercel (interactive sandbox)
 
 The full app has no authentication and can spend API quota or send email, so it is **never** deployed
-publicly. Instead the Vercel site is a frozen, read-only snapshot of a real run: the same React
-workbench reading static JSON from `web/public/demo/`, with no backend and no secrets. Approve, edit,
-send and run are disabled there. The site is marked `noindex` because it lists creators' public
-business contact details.
+publicly. The Vercel build reads a frozen real-run snapshot from `web/public/demo/`, with no backend
+or secrets. Visitors can inspect evidence, edit and approve draft copies, and simulate outreach in
+their own browser. Those changes stay in browser storage; they never update the shared dataset or
+transmit a message. Running discovery or calling a model remains local-only. The site is marked
+`noindex` because it lists creators' public business contact details.
 
-1. Refresh the snapshot after any new run: `python main.py export && python main.py snapshot`, then commit.
-2. On [vercel.com](https://vercel.com): **Add New, Project**, import this GitHub repository.
-3. Set **Root Directory** to `web`. Vercel then detects Vite, and `web/vercel.json` supplies the build
-   (`VITE_DEMO=1 npm run build`). No environment variables are needed.
-4. Deploy. Every push to `main` redeploys automatically.
+The existing Vercel project is connected to this repository's `main` branch, with `web` as its root
+directory. `web/vercel.json` builds with `VITE_DEMO=1 npm run build`; no API keys or environment
+variables are needed on Vercel. After a new local run, refresh the published data with
+`python main.py export && python main.py snapshot`, review the diff, then push to `main` to redeploy.
+For a fresh Vercel account, import this GitHub repository and set its Root Directory to `web`.
 
 Local preview of the exact build: `cd web && VITE_DEMO=1 npm run build && npx vite preview`.
 
@@ -337,7 +338,7 @@ the original bug makes them fail.
 * Thresholds and score weights are calibrated on one run; check them with `audit-sample` /
   `audit-score`.
 * Gemini free-tier daily limits throttle message generation; the pipeline stops cleanly and resumes.
-* 111 of 116 qualified creators have a draft. The rest are mostly non-English channels, where the English-word topic-overlap check cannot match the title; they need a manual draft.
+* 112 of 116 qualified creators have validated drafts. The other four remain pending model retry or manual review because of provider limits and grounding checks; no generic substitute is exported.
 * Brand fit is weaker for `STANDARD`-tier creators whose content is general technology rather than education; the angle and wording are the same campaign brief. Treat the tier as a ranking signal and review before sending.
 * Live SMTP sending is implemented and unit-tested with a mock transport but has not been exercised
   against a real mail server.
