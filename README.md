@@ -38,6 +38,22 @@ the manual audit are tracked in [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ---
 
+## What is in this submission
+
+| Required item | Where to find it |
+|---|---|
+| GitHub repository | this repository |
+| README / documentation | this file, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/EVALUATION.md](docs/EVALUATION.md), [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| Working demo, screenshots or video | live read-only demo and demo video (links at the top); run locally for the full interactive workbench |
+| Influencer dataset | [data/exports/influencers.csv](data/exports/influencers.csv): 1,484 discovered channels, 116 qualified |
+| Sample personalized outreach messages | [docs/SAMPLE_MESSAGES.md](docs/SAMPLE_MESSAGES.md) (readable selection) and [data/exports/messages.csv](data/exports/messages.csv) (all 111) |
+| Outreach tracker | [data/exports/outreach_log.csv](data/exports/outreach_log.csv) |
+| Automation workflow | the resumable command pipeline below, plus CI in [.github/workflows](.github/workflows/tests.yml) |
+| Setup instructions | [Quick start](#quick-start) |
+| APIs and tools used | [Technology stack, APIs and data sources](#technology-stack-apis-and-data-sources) |
+
+---
+
 ## Assignment requirements → implementation
 
 | Requirement | Where it is met |
@@ -206,6 +222,23 @@ Local preview of the exact build: `cd web && VITE_DEMO=1 npm run build && npx vi
 
 ---
 
+## Automation workflow
+
+The whole pipeline is one command, and every stage is **idempotent and resumable**, so it can be rerun
+safely after a failure, a rate limit or an exhausted quota:
+
+```bash
+python main.py run-all        # discover -> assess -> enrich -> personalize -> export
+```
+
+Only two steps involve a person, on purpose: **reviewing drafts** and **enabling real sending**. To keep
+the dataset fresh, schedule the same command (for example a daily cron job such as
+`0 6 * * * cd /path/to/repo && python main.py run-all`); finished work is skipped, quota is budgeted, and
+a stop on a rate limit simply resumes next time. `python main.py funnel` reports where candidates were lost.
+GitHub Actions runs the test suite and builds the frontend on every push.
+
+---
+
 ## Command reference
 
 ```bash
@@ -325,6 +358,7 @@ explicitly approved. Do not use the demo brief for real outreach, and do not sha
 
 ## Documentation
 
+[Sample messages](docs/SAMPLE_MESSAGES.md) ·
 [Architecture and design principles](docs/ARCHITECTURE.md) ·
 [Evaluation worksheet](docs/EVALUATION.md) ·
 [Troubleshooting](docs/TROUBLESHOOTING.md)
