@@ -30,11 +30,32 @@ and is **not approved for live outreach**; real sending is disabled by default.
 | With a real audience (view floor, reach, engagement) | 222 |
 | **Qualified (passed every rule)** | **116** (3 `PRIORITY`, 113 `STANDARD`) |
 | Qualified with a published email | 56 (60 stored as `Not Found`) |
-| Valid personalized drafts (email + DM) | 106 of 116 (the rest are retried by `personalize`) |
-| Automated tests | 72 passing |
+| Valid personalized drafts (email + DM) | **111 of 116** (55 of them for creators with an email) |
+| Automated tests | 75 passing |
 
 Every one of the 1,368 non-qualified channels stores the exact reasons it failed. Review status and
 the manual audit are tracked in [docs/EVALUATION.md](docs/EVALUATION.md).
+
+---
+
+## Assignment requirements → implementation
+
+| Requirement | Where it is met |
+|---|---|
+| **1. Discovery**, 50+ micro-influencers | 1,484 YouTube channels found; 333 inside 5k–100k followers. [src/discovery.py](src/discovery.py) |
+| **2. Filtering**, one complete category, pass/fail with reasons | Technology niche. 116 pass; each of the 1,368 failures stores reason codes and text. [src/policy.py](src/policy.py) |
+| Category, platform, followers, engagement, content relevance, brand fit, geography | All evaluated. Audience demographics are `Not Available` (they need creator-provided analytics); channel country is recorded and never presented as audience geography |
+| **3. Enrichment**, mandatory fields | All 116 qualified rows have name, platform, URL, followers, engagement, category, themes and an email or `Not Found`. [src/enrichment.py](src/enrichment.py) |
+| Email never guessed | 56 found, 60 `Not Found`. All 412 stored emails were verified against their cited source text or page |
+| **4. Personalization**, email 60–90 words, DM 15–30 words | 111 valid drafts, all within limits, each citing a real recent video, generated per creator. [src/personalization.py](src/personalization.py) |
+| Collaboration angles | Sponsored walkthrough, brand ambassador, UGC tutorial, co-created resource; chosen by rule from audience features |
+| **5. Sending layer**, valid email, retrieve message, send/simulate, status, no duplicates, log | Idempotent dry-run sender with a gated live-SMTP mode. [src/outreach.py](src/outreach.py), [src/mailer.py](src/mailer.py) |
+| Instagram DM, no platform bypass | DMs generated; sending is a manual-record workflow only |
+| **6. Workflow** | Discovery → Filter → Enrich → Personalize → Review → Send → Track, one command each, all resumable |
+| **7. Outputs** | Dataset, messages and tracker in `data/exports/`; documentation here and in `docs/` |
+| **8. Technical expectations** | Python + REST APIs + SQLite + LLM prompting + SMTP; modular; error-tolerant (quota ledger, retries, circuit breaker) |
+| **9. Evaluation criteria** | See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for error handling and the measured 50 → 500+ scaling path |
+| **Important**: no fabricated data | Enforced in code; unavailable data is labelled `Not Found` / `Not Available` |
 
 ---
 
@@ -68,6 +89,63 @@ The reasoning behind each design decision, with the measured evidence, is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
+
+## Technology stack, APIs and data sources
+
+| Layer | Choice |
+|---|---|
+| Language | Python 3.11 (standard library only for the pipeline) |
+| Storage | SQLite (WAL mode); every stage commits as it goes |
+| Discovery source | **YouTube Data API v3**: `search`, `channels`, `playlistItems`, `videos` |
+| LLM | **Google Gemini** via REST: `gemini-3.5-flash-lite` for classification (temperature 0, JSON output); `gemini-3.5-flash` with automatic fallback to flash-lite for message writing. Groq is an optional alternative classifier |
+| Contact data | Text creators published (channel and video descriptions) and their linked public websites (HTML, `robots.txt` respected). No third-party email-finder services and no guessing |
+| Sending | SMTP (`smtplib`), dry-run by default |
+| Review UI | React 19 + Vite, served by a local FastAPI service; a frozen read-only build is hosted on Vercel |
+| Tests / CI | `unittest` (75 offline tests), GitHub Actions |
+
+**Data sources:** public YouTube channel and video metadata, and public pages creators link to. No
+login-gated or scraped Instagram/TikTok data is used.
+
+## AI models and prompts
+
+* **Classification prompt** ([src/assessment.py](src/assessment.py), `classification_input`): supplies only the
+  channel text and recent video titles/descriptions, defines *technology focus* strictly (at least three
+  distinct recent videos), asks for creator type, school relevance and cited evidence video IDs, and
+  tells the model to ignore instructions inside creator text. The application validates the JSON,
+  rejects unknown video IDs, and retries with the validation error fed back (up to three times).
+* **Message prompt** ([src/personalization.py](src/personalization.py), `_generate_with`): supplies verified facts
+  only (name, themes, cleaned recent titles, scale), the rule-chosen collaboration angle, an opening
+  style and call-to-action, and the campaign brief with prohibited claims. It demands second-person
+  address, 60–90 and 15–30 word targets, and no claim of having watched anything. Prompt version
+  `technology-grounded-v2`.
+* **Validators** run on every draft: word counts, placeholders, cited-video ownership, topic overlap, brand
+  named, no hashtags, clichés, overclaims ("loved your video"), third-person leakage, pasted titles,
+  duplicate openings, DM not repeating the email. Failures are sent back to the model; drafts that
+  still fail are flagged instead of shipped.
+
+## Sample output
+
+A real qualified creator and the drafts generated for them (the creator's email address is in the dataset,
+with its source):
+
+| | |
+|---|---|
+| Creator | Artturi Jalli, YouTube, 21,500 subscribers, `STANDARD` tier, fit score 64 |
+| Evidence | median 6,511 views per video (30% reach), 1.11% engagement, contact found in the channel description |
+| Angle (chosen by rule) | sponsored walkthrough video |
+
+> **Email.** Your video on building an AI influencer caught our attention because of the software workflow
+> breakdown. We are reaching out from EDXSO to propose an exploratory sponsored walkthrough video for
+> teachers and school leaders, with format and terms to be discussed. This gives your audience practical
+> ideas for academic settings while helping you develop useful content with an education consulting
+> team and discuss a suitable collaboration format. Feel free to reply if a short call this month would
+> suit you.
+>
+> **Instagram DM.** Your recent walkthrough caught our attention. Would you be open to discussing an
+> exploratory sponsored walkthrough video for teachers and school leaders?
+
+Note the phrasing "caught our attention": the system only reads titles and descriptions, so it is
+forbidden from claiming to have watched or loved a video.
 
 ## Quick start
 
@@ -198,7 +276,7 @@ server.py          local FastAPI service for the workbench
 config.json        all tunable settings
 src/               pipeline modules (see the table above)
 web/               React reviewer workbench (Vite)
-tests/             72 offline tests
+tests/             75 offline tests
 docs/              ARCHITECTURE, EVALUATION, TROUBLESHOOTING
 data/exports/      generated CSVs
 ```
@@ -226,6 +304,8 @@ the original bug makes them fail.
 * Thresholds and score weights are calibrated on one run; check them with `audit-sample` /
   `audit-score`.
 * Gemini free-tier daily limits throttle message generation; the pipeline stops cleanly and resumes.
+* 111 of 116 qualified creators have a draft. The rest are mostly non-English channels, where the English-word topic-overlap check cannot match the title; they need a manual draft.
+* Brand fit is weaker for `STANDARD`-tier creators whose content is general technology rather than education; the angle and wording are the same campaign brief. Treat the tier as a ranking signal and review before sending.
 * Live SMTP sending is implemented and unit-tested with a mock transport but has not been exercised
   against a real mail server.
 * Single-operator prototype on SQLite. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the

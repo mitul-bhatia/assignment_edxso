@@ -26,7 +26,7 @@ def export_all() -> dict:
     with connect() as db:
         profiles = all_rows(db, "SELECT * FROM profiles ORDER BY filter_status,name")
         videos = all_rows(db, "SELECT * FROM videos ORDER BY channel_id,published_at DESC")
-        messages = all_rows(db, "SELECT m.*,p.name,p.profile_url FROM messages m JOIN profiles p ON p.channel_id=m.channel_id WHERE p.filter_status='PASSED' ORDER BY p.name")
+        messages = all_rows(db, "SELECT m.*,p.name,p.profile_url FROM messages m JOIN profiles p ON p.channel_id=m.channel_id WHERE p.filter_status='PASSED' AND m.validation_status='VALID' ORDER BY p.name")
         log = all_rows(db, "SELECT o.*,p.name,p.email FROM outreach_log o JOIN profiles p ON p.channel_id=o.channel_id ORDER BY o.id")
     video_lookup: dict[str, list] = {}
     for video in videos:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import random
@@ -116,7 +117,8 @@ def request_json(
             if exc.code == 429:
                 raise RateLimited(f"HTTP 429: {detail[:160]}", hint) from None
             raise ExternalServiceError(f"HTTP {exc.code}: {detail}") from None
-        except (URLError, TimeoutError) as exc:
+        except (URLError, OSError, http.client.HTTPException) as exc:
+            # Includes dropped connections and truncated responses (ConnectionResetError, IncompleteRead).
             if index + 1 < attempts:
                 time.sleep(2**index)
                 continue

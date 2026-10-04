@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -20,12 +21,17 @@ CLICHES = re.compile(
 OVERCLAIMS = re.compile(
     r"\b(love[ds]?|enjoyed|really liked|adored)\b[^.!?]{0,40}\b(your|the)\b|"
     r"\blearned (a lot|so much|from)\b|\b(great|amazing|brilliant) (video|insights?|content|tutorial)\b", re.I)
+# Instructions written for the model must never surface as copy aimed at a third person.
+THIRD_PERSON = re.compile(
+    r"\b(invite|ask|asks|asking)\s+(them|whether they|if they)\b|\bsuit them\b|\bwould they\b|\bthey would\b", re.I)
+MAX_TITLE_RUN = 8  # more consecutive words than this from a video title is pasting, not referencing
+
 OPENING_STYLES = [
     "open with the specific problem this creator's video helps their audience solve",
     "open with a short direct question about the topic of their video",
     "open by naming one concrete idea or technique from the video title",
     "open with what their audience gains from that kind of content",
-    "open with the creator's first name, then one specific observation about the title",
+    "open by speaking to the creator directly ('you'), then make one specific observation about the topic",
 ]
 
 
@@ -71,6 +77,19 @@ def opening(text: str, words: int = 5) -> str:
     return " ".join(re.findall(r"[\w']+", text.lower())[:words])
 
 
+def longest_shared_run(title: str, text: str) -> int:
+    """Longest run of consecutive words that the text copies from the title."""
+    words = re.findall(r"[a-z0-9']+", title.lower())
+    haystack = " " + " ".join(re.findall(r"[a-z0-9']+", text.lower())) + " "
+    best = 0
+    for start in range(len(words)):
+        length = best + 1
+        while start + length <= len(words) and " " + " ".join(words[start:start + length]) + " " in haystack:
+            best = length
+            length += 1
+    return best
+
+
 def content_words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z]{5,}", text.lower()) if w not in STOPWORDS}
 
@@ -104,6 +123,8 @@ def validate_draft(draft: dict, videos: list, *, openings: set[str] | None = Non
     cliche = CLICHES.search(combined)
     if cliche:
         errors.append(f"generic phrasing: '{cliche.group(0)}'")
+    if THIRD_PERSON.search(combined):
+        errors.append("speaks about the creator in the third person ('them'); address them as 'you'")
     overclaim = OVERCLAIMS.search(combined)
     if overclaim:
         errors.append(f"claims to have watched or enjoyed the content: '{overclaim.group(0)}' "
@@ -130,6 +151,8 @@ def _grounding_errors(draft: dict, videos: list) -> list[str]:
             title = video["title"]
         except (KeyError, IndexError):
             return []  # callers without titles (e.g. UI edits) skip this check
+        if longest_shared_run(clean_title(title), draft["email_body"] + " " + draft["dm"]) > MAX_TITLE_RUN:
+            return ["pastes a long video title verbatim; paraphrase the topic in your own words"]
         words = content_words(clean_title(title))
         if words and not words & content_words(draft["email_body"] + " " + draft["dm"]):
             return ["message never mentions the cited video's topic"]
@@ -197,8 +220,11 @@ def _generate_with(model: str, profile, videos: list, feedback, angle, openings)
         "You have title/description text only: do not claim to have watched the video. "
         "Propose exactly the supplied collaboration_angle (use its pitch, do not substitute another format), "
         "with a concrete audience benefit and one gentle CTA. "
-        "Follow the supplied opening_style for the first sentence of the email, and use the supplied call_to_action "
-        "wording for the closing ask. Never start with a generic greeting line and never reuse an opening listed in "
+        "Write directly to the creator in the second person ('you'); never refer to the creator as 'them' or 'they'. "
+        "creator_name may be a channel brand rather than a person's name: use a first name only if it clearly is one. "
+        "Never paste more than six consecutive words from a video title; paraphrase the topic. "
+        "Follow the supplied opening_style for the first sentence of the email, and end the email with the supplied "
+        "call_to_action sentence (a light rewording is fine, but keep it addressed to 'you'). Never start with a generic greeting line and never reuse an opening listed in "
         "openings_already_used_by_other_messages. Do not say you loved, enjoyed or learned from the video; say a title "
         "'stood out' or 'caught our attention', naming the topic naturally ('your video on ...', never 'video title'). "
         "The DM must not reuse the email's first sentence. Do not use the word 'highlights'. "
@@ -292,7 +318,8 @@ def personalize(*, refresh: bool = False) -> dict:
                 if "429" in str(exc):
                     rate_limited += 1
                     break  # retrying inside the same quota window only wastes the retries
-            except (KeyError, IndexError, ValueError, RuntimeError, TypeError) as exc:
+            except (KeyError, IndexError, ValueError, RuntimeError, TypeError, OSError,
+                    http.client.HTTPException) as exc:
                 feedback = [f"Generation error: {type(exc).__name__}: {exc}"]
         if rate_limited >= 3:
             counts["stopped"] = "rate limited by the model API; rerun later, finished drafts are kept"

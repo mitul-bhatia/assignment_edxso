@@ -13,7 +13,7 @@ pending is filled in with an estimate.
   executed this run (the 16 original baseline searches were already done), 7,063 of 8,000 budgeted
   quota units used that day
 - Classifier: Gemini (`gemini-3.5-flash-lite`), one label per profile that passed the objective rules
-- Message models: `gemini-3.5-flash` (20 drafts, its free daily limit) then `gemini-3.5-flash-lite` (86 drafts)
+- Message models: `gemini-3.5-flash` (20 drafts), `gemini-3.5-flash-lite` (91 drafts)
 - Discovered unique channels: **1,484** (assignment minimum 50)
 - Funnel: 1,484 discovered → 333 in follower range → 300 with recent measurable videos → 222 with
   real audience (reach + engagement) → **116 qualified** (3 `PRIORITY`, 113 `STANDARD`)
@@ -24,21 +24,23 @@ pending is filled in with an estimate.
 
 ### Message generation status
 
-- **106 of 116** qualified creators have a valid draft (email 63–90 words, DM 15–30 words)
-- 10 failed validation three times in a row (length, opening duplicates, or topic overlap) and have no
-  draft; `python main.py personalize` retries exactly those
-- Collaboration angles chosen by rule: 75 sponsored walkthrough, 16 brand ambassador, 12 UGC tutorial,
-  2 co-created resource, plus 1 legacy draft
+- **111 of 116** qualified creators have a valid draft (email 60-90 words, DM 15-30 words); 55 are for creators with an email
+- 5 have no draft (mostly non-English channels where the English-word topic-overlap check cannot match);
+  `python main.py personalize` retries them
+- Collaboration angles chosen by rule: 14 brand ambassador, 2 co created resource, 1 legacy, 82 sponsored walkthrough, 12 ugc tutorial
+- A defect found late in this run (third-person call-to-action leakage in 19 drafts, long titles pasted
+  verbatim in 16) was fixed at the cause and a validator added so the system catches it itself; the 32
+  affected drafts were blocked and regenerated
 - Review state: 1 approved and simulated-sent; the rest await human review
 
 ## Automated checks (reproducible)
 
 | Check | Result |
 |---|---|
-| Unit and workflow tests | 72 pass (`python -m unittest discover -s tests`) |
+| Unit and workflow tests | 75 pass (`python -m unittest discover -s tests`) |
 | Regression tests catch their bug | Verified by mutation: reintroducing each of 4 bugs made its test fail |
 | Mandatory assignment fields on qualified rows | 116/116 non-empty (name, platform, URL, followers, engagement, category, themes, email-or-`Not Found`) |
-| Drafts within length limits | email 63–90 words, DM 15–30 words across all 106 valid drafts |
+| Drafts within length limits | email 63–90 words, DM 15–30 words across all 111 valid drafts |
 | Duplicate email openings (first 5 words) | rejected by the validator across the whole batch |
 | Fabricated or guessed email | None: every email stores its source URL and kind |
 

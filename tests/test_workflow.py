@@ -241,6 +241,17 @@ class CopyValidationTests(TempDatabase):
         titled = self.draft(dm="Your video title Google Slides tips stood out. EDXSO would love to explore a tutorial. Open to chat?")
         self.assertTrue(any("video title" in e for e in validate_draft(titled, self.videos)))
 
+    def test_third_person_leakage_and_pasted_titles_are_rejected(self):
+        leaked = self.draft(dm="Your Google Slides walkthrough stood out. Invite them to reply if a short call would suit them. EDXSO here.")
+        self.assertTrue(any("third person" in e for e in validate_draft(leaked, self.videos)))
+        long_video = [{"video_id": "v1", "title": "Q and A290 for blind TalkBack explore by touch Google text to speech crash automatic synthesizer"}]
+        pasted = self.draft(email_body="Hello. Q and A290 for blind TalkBack explore by touch Google text to speech crash automatic synthesizer "
+                            "caught our attention. EDXSO works with schools on practical technology. We would like to explore a UGC-style tutorial "
+                            "together, with format and terms open for discussion, so more educators benefit from your approach. Would you be open to a chat?")
+        self.assertTrue(any("verbatim" in e for e in validate_draft(pasted, long_video)))
+        from src.personalization import longest_shared_run
+        self.assertEqual(longest_shared_run("one two three four", "x one two three y"), 3)
+
     def test_variety_choices_are_stable_per_creator_but_spread_across_a_batch(self):
         from src.personalization import OPENING_STYLES, pick
         self.assertEqual(pick(OPENING_STYLES, "UCabc"), pick(OPENING_STYLES, "UCabc"))
@@ -334,6 +345,24 @@ class RateLimitTests(TempDatabase):
                 patch("src.common.time.sleep") as nap:
             self.assertEqual(request_json("http://x", attempts=3), {"ok": True})
         nap.assert_called_once()
+
+    def test_dropped_connections_are_retried_like_other_transient_errors(self):
+        import io
+        from src.common import request_json
+        ok = io.BytesIO(b'{"ok": true}')
+        response = type("R", (), {"__enter__": lambda s: s, "__exit__": lambda s, *a: False, "read": lambda s: ok.read()})()
+        with patch("src.common.urlopen", side_effect=[ConnectionResetError("reset"), response]), patch("src.common.time.sleep"):
+            self.assertEqual(request_json("http://x", attempts=3), {"ok": True})
+
+    def test_one_failing_creator_does_not_end_the_batch(self):
+        from src import personalization
+        for name in ("a", "b"):
+            self.add_profile(name, status="PASSED", tier="STANDARD", score=70)
+            self.add_videos(name)
+        with patch("src.personalization.gemini_generate", side_effect=ConnectionResetError("boom")) as gen:
+            result = personalization.personalize()
+        self.assertEqual(gen.call_count, 6)       # 3 attempts each: both creators were tried to the end
+        self.assertEqual(result["needs_review"], 2)
 
     def test_exhausted_model_falls_back_to_the_next_and_is_remembered(self):
         from src import personalization as P

@@ -12,6 +12,7 @@ round of paid model calls.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -219,7 +220,8 @@ def assess(*, refresh: bool = False, only_status: str | None = None,
                     classification, provider = classify(profile, videos)
                     counts["llm_calls"] += 1
                     decision = evaluate(signals, classification, rules, profile["channel_country"])
-                except (KeyError, IndexError, ValueError, RuntimeError, TypeError) as exc:
+                except (KeyError, IndexError, ValueError, RuntimeError, TypeError, OSError,
+                        http.client.HTTPException) as exc:
                     decision = None
                     status = "REVIEW_REQUIRED"
                     texts = [f"Classification could not be validated: {type(exc).__name__}: {exc}"]
