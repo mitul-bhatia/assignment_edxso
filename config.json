@@ -1,0 +1,109 @@
+{
+  "campaign_id": "edxso-technology-demo-01",
+  "category": "Technology",
+  "max_candidates": 1500,
+  "target_in_range_candidates": 400,
+  "minimum_discovered": 50,
+  "videos_per_channel": 30,
+  "search_lookback_days": 365,
+  "search_strategies": [
+    "video",
+    "video_medium",
+    "channel"
+  ],
+  "search_pages_per_query": 2,
+  "max_search_calls_per_run": 30,
+  "youtube_daily_quota_budget": 8000,
+  "queries": [
+    "AI tools for teachers",
+    "classroom technology tools",
+    "digital assessment tools for schools",
+    "teacher productivity apps",
+    "education technology reviews",
+    "AI for school leaders",
+    "technology for learning creators",
+    "school management software review",
+    "teaching with technology",
+    "online learning tools review",
+    "student productivity apps",
+    "technology for educators",
+    "AI productivity tools review",
+    "software workflow tutorials",
+    "technology apps for productivity",
+    "AI tools for work review",
+    "digital tools tutorials",
+    "tech creator software reviews",
+    "no code automation tools",
+    "mobile apps productivity review",
+    "AI software tutorials",
+    "useful tech tools review"
+  ],
+  "filters": {
+    "minimum_subscribers": 5000,
+    "maximum_subscribers": 100000,
+    "minimum_usable_videos": 3,
+    "minimum_video_duration_seconds": 181,
+    "minimum_views_per_video": 50,
+    "maximum_days_since_upload": 180,
+    "minimum_median_views": 200,
+    "minimum_reach_ratio": 0.01,
+    "minimum_engagement_rate": 0.5,
+    "minimum_school_relevance": 0,
+    "priority_school_relevance": 3,
+    "minimum_fit_score": 50
+  },
+  "campaign": {
+    "brand_name": "EDXSO",
+    "status": "DEMO BRIEF — not approved for live outreach",
+    "description": "EDXSO works with schools on academic outcomes, leadership and sustainable institutional growth.",
+    "audience": "teachers, academic leaders and school decision makers",
+    "collaboration": "an exploratory co-created educational resource about practical technology in schools",
+    "creator_value": "a chance to develop useful content with an education consulting team and discuss a suitable collaboration format",
+    "call_to_action": [
+      "ask whether they would be open to a brief conversation",
+      "invite them to reply if a short call this month would suit them",
+      "ask if they would like to see a one-page outline before deciding",
+      "ask whether they would be interested in exploring the idea together"
+    ],
+    "prohibited_claims": [
+      "Do not promise payment, free products, audience size or a confirmed EDXSO campaign.",
+      "Do not claim to have watched a video; only titles and descriptions are available."
+    ],
+    "collaboration_angles": [
+      {
+        "id": "brand_ambassador",
+        "label": "brand ambassador conversation",
+        "pitch": "an exploratory conversation about an ongoing education-technology ambassador role with EDXSO",
+        "when": {
+          "min_engagement": 4.0,
+          "min_subscribers": 20000
+        }
+      },
+      {
+        "id": "co_created_resource",
+        "label": "co-created educational resource",
+        "pitch": "an exploratory co-created educational resource about practical technology in schools",
+        "when": {
+          "brand_tier": "PRIORITY"
+        }
+      },
+      {
+        "id": "sponsored_walkthrough",
+        "label": "sponsored walkthrough video",
+        "pitch": "an exploratory sponsored walkthrough video for teachers and school leaders, with format and terms to be discussed",
+        "when": {
+          "min_subscribers": 10000
+        }
+      },
+      {
+        "id": "ugc_tutorial",
+        "label": "UGC-style tutorial",
+        "pitch": "an exploratory UGC-style tutorial on practical technology workflows for educators, with format and terms open for discussion"
+      }
+    ],
+    "live_outreach_approved": false
+  },
+  "sending": {
+    "daily_cap": 20
+  }
+}

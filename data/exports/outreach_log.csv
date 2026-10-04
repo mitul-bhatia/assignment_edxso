@@ -1,0 +1,4 @@
+﻿id,campaign_id,channel_id,name,email,recipient,message_id,message_generated,sent,simulated_sent,channel,method,status,provider_message_id,date,error
+1,edxso-technology-demo-01,UCuQqc4Jt6bEDvC2UZwqOsQg,integratED Teacher,jacey@integratedteacher.com,jacey@integratedteacher.com,3,True,False,True,email,dry_run,SIMULATED_SENT,,2026-10-04T10:10:10.054120+00:00,
+2,edxso-technology-demo-01,UCuQqc4Jt6bEDvC2UZwqOsQg,integratED Teacher,jacey@integratedteacher.com,jacey@integratedteacher.com,3,True,False,False,email,dry_run,DUPLICATE_BLOCKED,,2026-10-04T10:10:16.278074+00:00,
+3,edxso-technology-demo-01,UC3o_DxPTKQuozhL32aSXtWA,Chima The Educator,Not Found,Not Found,1,True,False,False,email,dry_run,SKIPPED_NO_EMAIL,,2026-10-04T10:10:26.209368+00:00,
